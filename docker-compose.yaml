@@ -1,0 +1,41 @@
+version: "3.2"
+services:
+  papyrus_nginx:
+    image: papyrus/nginx
+    container_name: papyrus_nginx
+    build:
+      context: ${BUILD_CONTEXT}
+      dockerfile: nginx/Dockerfile
+      args:
+        config: nginx/papyrus.conf
+    working_dir: /app
+    depends_on:
+      - papyrus_app
+      - papyrus_api
+    volumes:
+      - ${PAPYRUS_ENV_APP_PATH}:/app
+    ports:
+      - ${PAPYRUS_ENV_APP_PORT:-20080}:80
+
+  papyrus_app:
+    image: node
+    container_name: papyrus_app
+    command: bash -c "npm install && npm run build"
+    working_dir: /app
+    volumes:
+      - ${PAPYRUS_ENV_APP_PATH}:/app
+    environment:
+      - REACT_APP_API_URL=${PAPYRUS_ENV_API_URL}
+
+  papyrus_api:
+    image: rust
+    container_name: papyrus_api
+    command: bash -c "cargo install --path . && papyrus"
+    working_dir: /app
+    volumes:
+      - ${PAPYRUS_ENV_API_PATH}:/app
+    ports:
+      - ${PAPYRUS_ENV_API_PORT:-20090}:80
+    environment:
+      - APP_ALLOWED_ORIGIN=${PAPYRUS_ENV_APP_ALLOWED_ORIGIN}
+      - APP_SOCKET_ADDRESS=${PAPYRUS_ENV_API_SOCKET_ADDRESS}
